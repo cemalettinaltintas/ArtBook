@@ -2,6 +2,7 @@ package com.cemalettinaltintas.artbook;
 
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
 import android.graphics.Bitmap;
@@ -67,7 +68,26 @@ public class DetailActivity extends AppCompatActivity {
             Bitmap selectImage= BitmapFactory.decodeResource(getApplicationContext().getResources(),R.drawable.addimage);
             binding.imageView.setImageBitmap(selectImage);
         }else{
+            //Detay
             binding.button.setVisibility(View.INVISIBLE);
+            int artId= intent.getIntExtra("artId",1);
+
+            Cursor cursor=database.rawQuery("SELECT * FROM arts WHERE id=?",new String[]{String.valueOf(artId)});
+
+            int nameIx=cursor.getColumnIndex("artname");
+            int painterNameIx=cursor.getColumnIndex("paintername");
+            int yearIx=cursor.getColumnIndex("year");
+            int imageIx=cursor.getColumnIndex("image");
+
+            while (cursor.moveToNext()){
+                binding.artNameText.setText(cursor.getString(nameIx));
+                binding.painterNameText.setText(cursor.getString(painterNameIx));
+                binding.yearText.setText(cursor.getString(yearIx));
+                byte[] bytes= cursor.getBlob(imageIx);
+                Bitmap bitmap=BitmapFactory.decodeByteArray(bytes,0,bytes.length);
+                binding.imageView.setImageBitmap(bitmap);
+            }
+            cursor.close();
         }
     }
 
