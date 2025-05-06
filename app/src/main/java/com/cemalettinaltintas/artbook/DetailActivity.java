@@ -41,6 +41,7 @@ public class DetailActivity extends AppCompatActivity {
     public static Uri secilenGorsel;
     Bitmap secilenBitmap;
     SQLiteDatabase  database;
+    int artId;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,21 +60,24 @@ public class DetailActivity extends AppCompatActivity {
 
         Intent intent=getIntent();
         String info = intent.getStringExtra("info");
+
         if (info.matches("new")){
             binding.artNameText.setText("");
             binding.painterNameText.setText("");
             binding.yearText.setText("");
-            binding.button.setVisibility(View.VISIBLE);
+            binding.button.setVisibility(View.VISIBLE);//save
+            binding.delete.setVisibility(View.INVISIBLE);//delete
+            binding.update.setVisibility(View.INVISIBLE);
 
             Bitmap selectImage= BitmapFactory.decodeResource(getApplicationContext().getResources(),R.drawable.addimage);
             binding.imageView.setImageBitmap(selectImage);
         }else{
-            //Detay
             binding.button.setVisibility(View.INVISIBLE);
-            int artId= intent.getIntExtra("artId",1);
+            binding.delete.setVisibility(View.VISIBLE);//delete
+            binding.update.setVisibility(View.VISIBLE);
 
+            artId= intent.getIntExtra("artId",1);
             Cursor cursor=database.rawQuery("SELECT * FROM arts WHERE id=?",new String[]{String.valueOf(artId)});
-
             int nameIx=cursor.getColumnIndex("artname");
             int painterNameIx=cursor.getColumnIndex("paintername");
             int yearIx=cursor.getColumnIndex("year");
@@ -90,7 +94,6 @@ public class DetailActivity extends AppCompatActivity {
             cursor.close();
         }
     }
-
     private void registerLauncher() {
         activityResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), new ActivityResultCallback<ActivityResult>() {
             @Override
@@ -179,7 +182,6 @@ public class DetailActivity extends AppCompatActivity {
 
     }
 
-
     public Bitmap kucukBitmapOlustur(Bitmap image, int maximumSize) {
 
         int width = image.getWidth();
@@ -224,5 +226,43 @@ public class DetailActivity extends AppCompatActivity {
         Intent intent=new Intent(DetailActivity.this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         startActivity(intent);
+    }
+
+    public void delete(View view) {
+        try {
+            String sorgu="DELETE FROM arts WHERE id=?";
+            SQLiteStatement sqLiteStatement=database.compileStatement(sorgu);
+            sqLiteStatement.bindLong(1,artId);
+            sqLiteStatement.execute();
+        }catch (Exception e){
+            e.getLocalizedMessage();
+        }
+        Intent intent=new Intent(DetailActivity.this, MainActivity.class);
+        startActivity(intent);
+        finish();
+    }
+
+    public void update(View view) {
+        try {
+            String sorgu="UPDATE arts SET artname=?,paintername=?,year=?,image=? WHERE id=?";
+            SQLiteStatement sqLiteStatement=database.compileStatement(sorgu);
+            sqLiteStatement.bindString(1,binding.artNameText.getText().toString());
+            sqLiteStatement.bindString(2,binding.painterNameText.getText().toString());
+            sqLiteStatement.bindString(3,binding.yearText.getText().toString());
+
+            Bitmap smallImage= kucukBitmapOlustur(secilenBitmap,300);
+
+            ByteArrayOutputStream outputStream=new ByteArrayOutputStream();
+            smallImage.compress(Bitmap.CompressFormat.PNG,50,outputStream);
+            byte[] byteArray= outputStream.toByteArray();
+            sqLiteStatement.bindBlob(4,byteArray);
+            sqLiteStatement.bindLong(5,artId);
+            sqLiteStatement.execute();
+        }catch (Exception e){
+            e.getLocalizedMessage();
+        }
+        Intent intent=new Intent(DetailActivity.this, MainActivity.class);
+        startActivity(intent);
+        finish();
     }
 }
